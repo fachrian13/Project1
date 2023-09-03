@@ -444,17 +444,26 @@ private:
 };
 
 int main() {
+	auto logged = console(120, 30);
+	logged.add(new text("========================"));
+	logged.add(new text("   ANDA TELAH MASUK"));
+	logged.add(new text("========================"));
+
 	auto dashboard = console(120, 30);
 	dashboard.add(new text("========================="));
 	dashboard.add(new text("   DASHBOARD SINARMART"));
 	dashboard.add(new text("========================="));
 	dashboard.add(new text("Silakan login ke akun anda"));
 	dashboard.add(new separator());
-	auto i_username = input("Username ", 20);
+	auto i_username = input("Username: ", 20);
 	dashboard.add(&i_username);
-	auto i_password = input("", 20);
+	auto i_password = input("Password: ", 20);
+	i_password.hide(true);
 	dashboard.add(&i_password);
-	auto b_login = button("Login");
+	auto b_login = button("Login", [&]() {
+		if (i_username.get_value() == "admin" && i_password.get_value() == "admin")
+			logged.run();
+		});
 	dashboard.add(&b_login);
 	auto b_exit = button("Exit", [&dashboard]() { dashboard.stop(); });
 	dashboard.add(&b_exit);
