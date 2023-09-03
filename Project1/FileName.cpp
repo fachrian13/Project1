@@ -449,6 +449,13 @@ int main() {
 	logged.add(new text("   ANDA TELAH MASUK"));
 	logged.add(new text("========================"));
 
+	auto salah_password = console(120, 30);
+	salah_password.add(new text("========================="));
+	salah_password.add(new text("   DASHBOARD SINARMART"));
+	salah_password.add(new text("========================="));
+	salah_password.add(new text("Username atau password salah"));
+
+
 	auto dashboard = console(120, 30);
 	dashboard.add(new text("========================="));
 	dashboard.add(new text("   DASHBOARD SINARMART"));
@@ -463,6 +470,8 @@ int main() {
 	auto b_login = button("Login", [&]() {
 		if (i_username.get_value() == "admin" && i_password.get_value() == "admin")
 			logged.run();
+		else
+			salah_password.run();
 		});
 	dashboard.add(&b_login);
 	auto b_exit = button("Exit", [&dashboard]() { dashboard.stop(); });
