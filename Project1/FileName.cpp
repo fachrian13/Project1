@@ -74,7 +74,7 @@ enum class component_type {
 class component {
 public:
 	virtual std::vector<std::vector<pixel>> render() = 0;
-	virtual void on_focus(int key) {}
+	virtual bool on_focus(int key) { return false; }
 	virtual void set_focus(bool value) { self.focus = value; }
 	virtual bool get_focus() { return self.focus; }
 	component_type get_type() { return self.type; }
@@ -87,19 +87,18 @@ protected:
 class text : public component {
 public:
 	text(std::string value) :
-		content(value) {}
+		content(value), canvas(1, std::vector<pixel>(self.content.size(), pixel())) {}
 
 	std::vector<std::vector<pixel>> render() override {
-		auto rendered = std::vector<pixel>(self.content.size(), pixel());
-
 		for (size_t i = 0; i < self.content.size(); i++)
-			rendered[i].character = self.content[i];
+			canvas[0][i].character = self.content[i];
 
-		return std::vector<std::vector<pixel>>(1, rendered);
+		return self.canvas;
 	}
 
 private:
 	std::string content;
+	std::vector<std::vector<pixel>> canvas;
 };
 
 class input : public component {
@@ -107,45 +106,45 @@ public:
 	input(std::string name, unsigned length, std::string placeholder = "") :
 		name(name), placeholder(placeholder) {
 		self.type = component_type::focusable;
-		self.canvas = std::vector<pixel>(length + name.size(), pixel(color::black, color::white));
+		self.canvas = std::vector<std::vector<pixel>>(1, std::vector<pixel>(length + name.size(), pixel(color::black, color::white)));
 		self.length = name.size() + length;
 		self.cursor.field = name.size();
 	}
 
 	std::vector<std::vector<pixel>> render() override {
 		for (size_t i = 0; i < self.name.size(); i++)
-			self.canvas[i].character = self.name[i];
+			self.canvas[0][i].character = self.name[i];
 
 		pixel focused = self.get_focus() ? pixel(color::white, color::black) : pixel(color::gray, color::black);
 		for (unsigned i = name.size(); i < self.length; i++)
-			self.canvas[i] = focused;
+			self.canvas[0][i] = focused;
 
 		if (!self.get_focus() && self.content.empty() && !self.placeholder.empty())
 			for (unsigned i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length + self.name.size(); i++, f++)
 				if (i != self.placeholder.size())
-					self.canvas[f].character = self.placeholder[i];
+					self.canvas[0][f].character = self.placeholder[i];
 				else
 					break;
 		else if (self.password)
 			for (unsigned i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length + self.name.size(); i++, f++)
 				if (i != self.content.size())
-					self.canvas[f].character = '*';
+					self.canvas[0][f].character = '*';
 				else
 					break;
 		else
 			for (unsigned i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length - self.name.size(); i++, f++)
 				if (i != self.content.size())
-					self.canvas[f].character = self.content[i];
+					self.canvas[0][f].character = self.content[i];
 				else
 					break;
 
 		if (self.get_focus())
-			self.canvas[self.cursor.field].character = '_';
+			self.canvas[0][self.cursor.field].character = '_';
 
-		return std::vector<std::vector<pixel>>(1, self.canvas);
+		return self.canvas;
 	}
 
-	void on_focus(int key) override {
+	bool on_focus(int key) override {
 		switch (key) {
 		case 77: // right arrow
 			if (self.cursor.content < self.content.size()) {
@@ -156,6 +155,7 @@ public:
 				else
 					self.cursor.start++;
 			}
+			return true;
 			break;
 		case 75: // left arrow
 			if (self.cursor.content > 0) {
@@ -166,7 +166,7 @@ public:
 				else
 					self.cursor.start--;
 			}
-			break;
+			return true;
 			break;
 		case 8: // backspace
 			if (self.cursor.content > 0) {
@@ -177,6 +177,7 @@ public:
 				else
 					self.cursor.field--;
 			}
+			return true;
 			break;
 		default:
 			if (key >= 32 && key <= 126) { // writeable character
@@ -186,8 +187,11 @@ public:
 					self.cursor.field++;
 				else
 					self.cursor.start++;
+				return true;
 			}
 		}
+
+		return false;
 	}
 
 	void hide(bool value) { self.password = true; }
@@ -200,7 +204,7 @@ private:
 	std::string name = "";
 	std::string content = "";
 	std::string placeholder = "";
-	std::vector<pixel> canvas = {};
+	std::vector<std::vector<pixel>> canvas = {};
 
 	struct {
 		unsigned start = 0;
@@ -234,21 +238,24 @@ public:
 		return self.canvas;
 	}
 
-	void on_focus(int key) override {
+	bool on_focus(int key) override {
 		switch (key) {
 		case 106: // j
 			if (self.cursor < limit - 1)
 				self.cursor++;
 			else if (start < self.menus.size() - limit)
 				start++;
+			return true;
 			break;
 		case 107: // k
 			if (self.cursor > 0)
 				self.cursor--;
 			else if (start > 0)
 				start--;
+			return true;
 			break;
 		}
+		return false;
 	}
 
 private:
@@ -263,75 +270,48 @@ private:
 class button : public component {
 public:
 	button(std::string name, std::function<void()> onclick = []() {}) :
-		name(name), onclick(onclick) {
+		name(name), onclick(onclick), canvas(1, std::vector<pixel>(name.size()+2, pixel())) {
 		self.type = component_type::focusable;
 	}
 
 	std::vector<std::vector<pixel>> render() override {
-		std::vector<pixel> rendered(self.name.size() + 2, self.get_focus() ? pixel(color::white, color::black) : pixel());
+		self.canvas = std::vector<std::vector<pixel>>(1, std::vector<pixel>(self.name.size() + 2, self.get_focus() ? pixel(color::white, color::black) : pixel()));
 
-		rendered.front().character = '[';
+		self.canvas[0].front().character = '[';
 		for (size_t i = 0; i < self.name.size(); i++)
-			rendered[i + 1].character = self.name[i];
-		rendered.back().character = ']';
+			self.canvas[0][i + 1].character = self.name[i];
+		self.canvas[0].back().character = ']';
 
-		return std::vector<std::vector<pixel>>(1, rendered);
+		return self.canvas;
 	}
 
-	void on_focus(int key) {
+	bool on_focus(int key) {
 		switch (key) {
 		case 13:
 			self.onclick();
+			return true;
 			break;
 		}
+		return false;
 	}
 
 private:
 	std::string name;
 	std::function<void()> onclick;
+	std::vector<std::vector<pixel>> canvas;
 };
 
 class separator : public component {
 public:
 	separator(unsigned height = 1) :
-		height(height) {}
+		height(height), canvas(self.height, std::vector<pixel>(120, pixel())) {}
 
 	std::vector<std::vector<pixel>> render() override {
-		return std::vector<std::vector<pixel>>(self.height, std::vector<pixel>(120, pixel()));
+		return self.canvas;
 	}
 private:
 	unsigned height;
-};
-
-class hlayout : public component {
-public:
-	hlayout(std::vector<component*> value) :
-		components(value) {}
-
-	std::vector<component*>& get_component() { return self.components; }
-
-	std::vector<std::vector<pixel>> render() override {
-		auto rendered = std::vector<pixel>(120, pixel());
-		size_t e = 0;
-
-		for (size_t i = 0; i < self.components.size(); i++) {
-			auto temp = self.components[i]->render();
-
-			for (size_t h = 0; h < temp.size(); h++) {
-				for (size_t w = 0; w < temp[h].size(); w++, e++) {
-					if (w == 120)
-						break;
-
-					rendered[e] = temp[h][w];
-				}
-			}
-		}
-
-		return std::vector<std::vector<pixel>>(1, rendered);
-	}
-
-private:
-	std::vector<component*> components;
+	std::vector<std::vector<pixel>> canvas;
 };
 
 class console {
@@ -346,13 +326,6 @@ public:
 			self.focusable_component.push_back(self.components.size() - 1);
 	}
 
-	void add(std::vector<component*> value) {
-		for (const auto& i : value) {
-			if (i->get_type() == component_type::focusable)
-				self.focusable_component.push_back(self.components.size() - 1);
-		}
-	}
-
 	void stop() { self.loop = false; }
 
 	void run() {
@@ -365,8 +338,7 @@ public:
 
 				int key = _getch();
 
-				switch (key) {
-				case 224:
+				if (key == 224) {
 					key = _getch();
 
 					switch (key) {
@@ -381,15 +353,20 @@ public:
 					default:
 						self.components[self.focusable_component[current]]->on_focus(key);
 					}
-					break;
-				case 9: // tab
-					if (current < self.focusable_component.size() - 1)
+				}
+				else {
+					if (self.components[self.focusable_component[current]]->on_focus(key))
+						continue;
+					else if (key == 106 && current < self.focusable_component.size() - 1)
 						self.components[self.focusable_component[current++]]->set_focus(false);
-					else
-						self.components[self.focusable_component[current]]->set_focus(false), current = 0;
-					break;
-				default:
-					self.components[self.focusable_component[current]]->on_focus(key);
+					else if (key == 107 && current > 0)
+						self.components[self.focusable_component[current--]]->set_focus(false);
+					else if (key == 9) {
+						if (current < self.focusable_component.size() - 1)
+							self.components[self.focusable_component[current++]]->set_focus(false);
+						else
+							self.components[self.focusable_component[current]]->set_focus(false), current = 0;
+					}
 				}
 			}
 		}
@@ -405,8 +382,8 @@ private:
 		std::string output = "\x1b[0;0H";
 		std::vector<std::vector<std::vector<pixel>>> rendered;
 
-		for (const auto& i : self.components)
-			rendered.push_back(i->render());
+		for (size_t i = 0; i < self.components.size(); i++)
+			rendered.push_back(self.components[i]->render());
 
 		for (unsigned i = 0; i < rendered.size(); i++) {
 			for (unsigned h = 0; h < rendered[i].size(); h++) {
