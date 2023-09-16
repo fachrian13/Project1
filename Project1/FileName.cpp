@@ -127,7 +127,7 @@ public:
 				else
 					break;
 		else if (self.password)
-			for (unsigned i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length + self.name.size(); i++, f++)
+			for (unsigned i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length - self.name.size(); i++, f++)
 				if (i != self.content.size())
 					self.canvas[0][f].character = '*';
 				else
@@ -353,7 +353,8 @@ public:
 							self.components[self.focusable_component[current--]]->set_focus(false);
 						break;
 					default:
-						self.components[self.focusable_component[current]]->on_focus(key);
+						if (self.components[self.focusable_component[current]]->on_focus(key))
+							continue;
 					}
 				}
 				else {
@@ -434,6 +435,12 @@ int main() {
 	salah_password.add(std::make_shared<text>("========================="));
 	salah_password.add(std::make_shared<text>("Username atau password salah"));
 
+	auto kosong = console(120, 30);
+	kosong.add(std::make_shared<text>("========================="));
+	kosong.add(std::make_shared<text>("   DASHBOARD SINARMART"));
+	kosong.add(std::make_shared<text>("========================="));
+	kosong.add(std::make_shared<text>("Silakan isi username dan password"));
+
 
 	auto dashboard = console(120, 30);
 	dashboard.add(std::make_shared<text>("========================="));
@@ -447,7 +454,9 @@ int main() {
 	i_password->hide(true);
 	dashboard.add(i_password);
 	auto b_login = std::make_shared<button>("Login", [&]() {
-		if (i_username->get_value() == "admin" && i_password->get_value() == "admin")
+		if (i_username->get_value().empty() || i_password->get_value().empty())
+			kosong.run();
+		else if (i_username->get_value() == "admin" && i_password->get_value() == "admin")
 			logged.run();
 		else
 			salah_password.run();
