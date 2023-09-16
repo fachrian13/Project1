@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <memory>
 #include <conio.h>
 
 #define self (*this)
@@ -319,12 +320,13 @@ public:
 	console(unsigned width, unsigned height) :
 		width(width), height(height), canvas(height, std::vector<pixel>(width, pixel())) {}
 
-	void add(component* value) {
+	void add(std::shared_ptr<component> value) {
 		self.components.push_back(value);
 
 		if (value->get_type() == component_type::focusable)
 			self.focusable_component.push_back(self.components.size() - 1);
 	}
+
 
 	void stop() { self.loop = false; }
 
@@ -415,43 +417,43 @@ private:
 	bool loop = true;
 	unsigned width = 0;
 	unsigned height = 0;
-	std::vector<component*> components;
+	std::vector<std::shared_ptr<component>> components;
 	std::vector<unsigned> focusable_component;
 	std::vector<std::vector<pixel>> canvas = {};
 };
 
 int main() {
 	auto logged = console(120, 30);
-	logged.add(new text("========================"));
-	logged.add(new text("   ANDA TELAH MASUK"));
-	logged.add(new text("========================"));
+	logged.add(std::make_shared<text>("========================"));
+	logged.add(std::make_shared<text>("   ANDA TELAH MASUK"));
+	logged.add(std::make_shared<text>("========================"));
 
 	auto salah_password = console(120, 30);
-	salah_password.add(new text("========================="));
-	salah_password.add(new text("   DASHBOARD SINARMART"));
-	salah_password.add(new text("========================="));
-	salah_password.add(new text("Username atau password salah"));
+	salah_password.add(std::make_shared<text>("========================="));
+	salah_password.add(std::make_shared<text>("   DASHBOARD SINARMART"));
+	salah_password.add(std::make_shared<text>("========================="));
+	salah_password.add(std::make_shared<text>("Username atau password salah"));
 
 
 	auto dashboard = console(120, 30);
-	dashboard.add(new text("========================="));
-	dashboard.add(new text("   DASHBOARD SINARMART"));
-	dashboard.add(new text("========================="));
-	dashboard.add(new text("Silakan login ke akun anda"));
-	dashboard.add(new separator());
-	auto i_username = input("Username: ", 20);
-	dashboard.add(&i_username);
-	auto i_password = input("Password: ", 20);
-	i_password.hide(true);
-	dashboard.add(&i_password);
-	auto b_login = button("Login", [&]() {
-		if (i_username.get_value() == "admin" && i_password.get_value() == "admin")
+	dashboard.add(std::make_shared<text>("========================="));
+	dashboard.add(std::make_shared<text>("   DASHBOARD SINARMART"));
+	dashboard.add(std::make_shared<text>("========================="));
+	dashboard.add(std::make_shared<text>("Silakan login ke akun anda"));
+	dashboard.add(std::make_shared<separator>());
+	auto i_username = std::make_shared<input>("Username: ", 20);
+	dashboard.add(i_username);
+	auto i_password = std::make_shared<input>("Password: ", 20);
+	i_password->hide(true);
+	dashboard.add(i_password);
+	auto b_login = std::make_shared<button>("Login", [&]() {
+		if (i_username->get_value() == "admin" && i_password->get_value() == "admin")
 			logged.run();
 		else
 			salah_password.run();
 		});
-	dashboard.add(&b_login);
-	auto b_exit = button("Exit", [&dashboard]() { dashboard.stop(); });
-	dashboard.add(&b_exit);
+	dashboard.add(b_login);
+	auto b_exit = std::make_shared<button>("Exit", [&dashboard]() { dashboard.stop(); });
+	dashboard.add(b_exit);
 	dashboard.run();
 }
