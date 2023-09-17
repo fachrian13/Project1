@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <iostream>
+#include <windows.h>
 
 #define self (*this)
 
@@ -59,7 +60,7 @@ enum class component_type {
 class component {
 public:
 	virtual std::vector<std::vector<pixel>> render() = 0;
-	virtual bool on_focus(int key) { return false; }
+	virtual bool on_focus(INPUT_RECORD) { return false; }
 	bool get_focus() const { return self.focus; }
 	void set_focus(const bool value) { self.focus = value; }
 	component_type get_type() const { return self.type; }
@@ -126,9 +127,9 @@ public:
 
 		return self.canvas;
 	}
-	bool on_focus(int key) override {
-		switch (key) {
-		case 77: /* right arrow */
+	bool on_focus(INPUT_RECORD in) override {
+		switch (in.Event.KeyEvent.wVirtualKeyCode) {
+		case VK_RIGHT: /* right arrow */
 			if (self.cursor.content < self.content.size()) {
 				self.cursor.content++;
 
@@ -139,7 +140,7 @@ public:
 			}
 			return true;
 
-		case 75: /* left arrow */
+		case VK_LEFT: /* left arrow */
 			if (self.cursor.content > 0) {
 				self.cursor.content--;
 
@@ -150,7 +151,7 @@ public:
 			}
 			return true;
 
-		case 8: /* backspace */
+		case VK_BACK: /* backspace */
 			if (self.cursor.content > 0) {
 				self.content.erase(--self.cursor.content, 1);
 
@@ -162,8 +163,8 @@ public:
 			return true;
 
 		default:
-			if (key >= 32 && key <= 126) { /* writeable character */
-				self.content.insert(self.cursor.content++, 1, static_cast<char>(key));
+			if (in.Event.KeyEvent.uChar.AsciiChar >= 32 && in.Event.KeyEvent.uChar.AsciiChar <= 126) { /* writeable character */
+				self.content.insert(self.cursor.content++, 1, static_cast<char>(in.Event.KeyEvent.uChar.AsciiChar));
 
 				if (self.cursor.field <= self.length - 2)
 					self.cursor.field++;
@@ -243,8 +244,8 @@ public:
 			return std::vector<std::vector<pixel>>(1, placeholder);
 		}
 	}
-	bool on_focus(int key) override {
-		switch (key) {
+	bool on_focus(INPUT_RECORD in) override {
+		switch (in.Event.KeyEvent.uChar.AsciiChar) {
 		case 106: /* j */
 			if (self.cursor < limit - 1)
 				self.cursor++, self.current_index++;
@@ -290,9 +291,9 @@ public:
 
 		return self.canvas;
 	}
-	bool on_focus(int key) override {
-		switch (key) {
-		case 13: /* return */
+	bool on_focus(INPUT_RECORD ir) override {
+		switch (ir.Event.KeyEvent.wVirtualKeyCode) {
+		case VK_RETURN: /* return */
 			self.on_click();
 			return true;
 		}
@@ -339,38 +340,47 @@ public:
 				self.components[self.focusable_components[self.current_component]]->set_focus(true);
 				self._write_();
 
-				int key = _getch();
+				ReadConsoleInput(self.input_handle, &self.input_record, 128, &self.char_number);
 
-				if (key == 224) {
-					key = _getch();
-					switch (key) {
-					case 80: /* down */
+				if (self.input_record.EventType == KEY_EVENT && self.input_record.Event.KeyEvent.bKeyDown) {
+					WORD virtual_key = self.input_record.Event.KeyEvent.wVirtualKeyCode;
+
+					if (self.components[self.focusable_components[self.current_component]]->on_focus(self.input_record))
+						continue;
+
+					if (virtual_key == VK_DOWN) {
 						if (self.current_component < self.focusable_components.size() - 1)
 							self.components[self.focusable_components[self.current_component++]]->set_focus(false);
-						break;
-					case 72: /* up */
+					}
+					if (virtual_key == VK_UP) {
 						if (self.current_component > 0)
 							self.components[self.focusable_components[self.current_component--]]->set_focus(false);
-						break;
-					default:
-						if (self.components[self.focusable_components[self.current_component]]->on_focus(key))
-							continue;
 					}
-				}
-				else {
-					if (self.components[self.focusable_components[self.current_component]]->on_focus(key))
-						continue;
-					else if (key == 106 && self.current_component < (self.focusable_components.size() - 1)) /* j */
-						self.components[self.focusable_components[self.current_component++]]->set_focus(false);
-					else if (key == 107 && self.current_component > 0) /* k */
-						self.components[self.focusable_components[self.current_component--]]->set_focus(false);
-					else if (key == 9) { /* tab */
+					else if (virtual_key == VK_TAB) {
 						if (self.current_component < (self.focusable_components.size() - 1))
 							self.components[self.focusable_components[self.current_component++]]->set_focus(false);
 						else
 							self.components[self.focusable_components[self.current_component]]->set_focus(false), self.current_component = 0;
 					}
+					else if (self.input_record.Event.KeyEvent.uChar.AsciiChar == 106 && self.current_component < (self.focusable_components.size() - 1)) /* j */
+						self.components[self.focusable_components[self.current_component++]]->set_focus(false);
+					else if (self.input_record.Event.KeyEvent.uChar.AsciiChar == 107 && self.current_component > 0) /* k */
+						self.components[self.focusable_components[self.current_component--]]->set_focus(false);
 				}
+				//else {
+				//	if (self.components[self.focusable_components[self.current_component]]->on_focus(self.input_record))
+				//		continue;
+				//	else if (self.input_record.Event.KeyEvent.uChar.AsciiChar == 106 && self.current_component < (self.focusable_components.size() - 1)) /* j */
+				//		self.components[self.focusable_components[self.current_component++]]->set_focus(false);
+				//	else if (self.input_record.Event.KeyEvent.uChar.AsciiChar == 107 && self.current_component > 0) /* k */
+				//		self.components[self.focusable_components[self.current_component--]]->set_focus(false);
+				//	else if (self.input_record.Event.KeyEvent.uChar.AsciiChar == 9) { /* tab */
+				//		if (self.current_component < (self.focusable_components.size() - 1))
+				//			self.components[self.focusable_components[self.current_component++]]->set_focus(false);
+				//		else
+				//			self.components[self.focusable_components[self.current_component]]->set_focus(false), self.current_component = 0;
+				//	}
+				//}
 			}
 		}
 	}
@@ -423,4 +433,7 @@ private:
 	std::vector<std::shared_ptr<component>> components = {};
 	std::vector<size_t> focusable_components = {};
 	std::vector<std::vector<pixel>> canvas = {};
+	HANDLE input_handle = GetStdHandle(STD_INPUT_HANDLE);
+	INPUT_RECORD input_record = {};
+	DWORD char_number = 0;
 };
