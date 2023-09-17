@@ -60,7 +60,7 @@ enum class component_type {
 class component {
 public:
 	virtual std::vector<std::vector<pixel>> render() = 0;
-	virtual bool on_focus(INPUT_RECORD) { return false; }
+	virtual bool on_focus(INPUT_RECORD ir) { return false; }
 	bool get_focus() const { return self.focus; }
 	void set_focus(const bool value) { self.focus = value; }
 	component_type get_type() const { return self.type; }
@@ -127,8 +127,8 @@ public:
 
 		return self.canvas;
 	}
-	bool on_focus(INPUT_RECORD in) override {
-		switch (in.Event.KeyEvent.wVirtualKeyCode) {
+	bool on_focus(INPUT_RECORD ir) override {
+		switch (ir.Event.KeyEvent.wVirtualKeyCode) {
 		case VK_RIGHT: /* right arrow */
 			if (self.cursor.content < self.content.size()) {
 				self.cursor.content++;
@@ -163,8 +163,8 @@ public:
 			return true;
 
 		default:
-			if (in.Event.KeyEvent.uChar.AsciiChar >= 32 && in.Event.KeyEvent.uChar.AsciiChar <= 126) { /* writeable character */
-				self.content.insert(self.cursor.content++, 1, static_cast<char>(in.Event.KeyEvent.uChar.AsciiChar));
+			if (ir.Event.KeyEvent.uChar.AsciiChar >= 32 && ir.Event.KeyEvent.uChar.AsciiChar <= 126) { /* writeable character */
+				self.content.insert(self.cursor.content++, 1, ir.Event.KeyEvent.uChar.AsciiChar);
 
 				if (self.cursor.field <= self.length - 2)
 					self.cursor.field++;
@@ -244,16 +244,18 @@ public:
 			return std::vector<std::vector<pixel>>(1, placeholder);
 		}
 	}
-	bool on_focus(INPUT_RECORD in) override {
-		switch (in.Event.KeyEvent.uChar.AsciiChar) {
-		case 106: /* j */
+	bool on_focus(INPUT_RECORD ir) override {
+		switch (ir.Event.KeyEvent.uChar.AsciiChar) {
+		case 'j':
+		case 'J':
 			if (self.cursor < limit - 1)
 				self.cursor++, self.current_index++;
 			else if (self.start < self.content.size() - limit)
 				self.start++, self.current_index++;
 			return true;
 
-		case 107: /* k */
+		case 'k':
+		case 'K':
 			if (self.cursor > 0)
 				self.cursor--, self.current_index--;
 			else if (start > 0)
@@ -340,47 +342,42 @@ public:
 				self.components[self.focusable_components[self.current_component]]->set_focus(true);
 				self._write_();
 
-				ReadConsoleInput(self.input_handle, &self.input_record, 128, &self.char_number);
+				ReadConsoleInput(self.input_handle, &self.input_record, 1, &self.char_number);
 
-				if (self.input_record.EventType == KEY_EVENT && self.input_record.Event.KeyEvent.bKeyDown) {
-					WORD virtual_key = self.input_record.Event.KeyEvent.wVirtualKeyCode;
-
+				if (self.input_record.Event.KeyEvent.bKeyDown) {
 					if (self.components[self.focusable_components[self.current_component]]->on_focus(self.input_record))
 						continue;
 
-					if (virtual_key == VK_DOWN) {
+					switch (self.input_record.Event.KeyEvent.wVirtualKeyCode) {
+					case VK_DOWN:
 						if (self.current_component < self.focusable_components.size() - 1)
 							self.components[self.focusable_components[self.current_component++]]->set_focus(false);
-					}
-					if (virtual_key == VK_UP) {
+						break;
+					case VK_UP:
 						if (self.current_component > 0)
 							self.components[self.focusable_components[self.current_component--]]->set_focus(false);
-					}
-					else if (virtual_key == VK_TAB) {
+						break;
+					case VK_TAB:
 						if (self.current_component < (self.focusable_components.size() - 1))
 							self.components[self.focusable_components[self.current_component++]]->set_focus(false);
 						else
 							self.components[self.focusable_components[self.current_component]]->set_focus(false), self.current_component = 0;
+						break;
 					}
-					else if (self.input_record.Event.KeyEvent.uChar.AsciiChar == 106 && self.current_component < (self.focusable_components.size() - 1)) /* j */
-						self.components[self.focusable_components[self.current_component++]]->set_focus(false);
-					else if (self.input_record.Event.KeyEvent.uChar.AsciiChar == 107 && self.current_component > 0) /* k */
-						self.components[self.focusable_components[self.current_component--]]->set_focus(false);
+
+					switch (self.input_record.Event.KeyEvent.uChar.AsciiChar) {
+					case 'j':
+					case 'J':
+						if (self.current_component < (self.focusable_components.size() - 1)) /* j */
+							self.components[self.focusable_components[self.current_component++]]->set_focus(false);
+						break;
+					case 'k':
+					case 'K':
+						if (self.current_component > 0) /* k */
+							self.components[self.focusable_components[self.current_component--]]->set_focus(false);
+						break;
+					}
 				}
-				//else {
-				//	if (self.components[self.focusable_components[self.current_component]]->on_focus(self.input_record))
-				//		continue;
-				//	else if (self.input_record.Event.KeyEvent.uChar.AsciiChar == 106 && self.current_component < (self.focusable_components.size() - 1)) /* j */
-				//		self.components[self.focusable_components[self.current_component++]]->set_focus(false);
-				//	else if (self.input_record.Event.KeyEvent.uChar.AsciiChar == 107 && self.current_component > 0) /* k */
-				//		self.components[self.focusable_components[self.current_component--]]->set_focus(false);
-				//	else if (self.input_record.Event.KeyEvent.uChar.AsciiChar == 9) { /* tab */
-				//		if (self.current_component < (self.focusable_components.size() - 1))
-				//			self.components[self.focusable_components[self.current_component++]]->set_focus(false);
-				//		else
-				//			self.components[self.focusable_components[self.current_component]]->set_focus(false), self.current_component = 0;
-				//	}
-				//}
 			}
 		}
 	}
