@@ -342,12 +342,19 @@ public:
 				int key = _getch();
 				if (key == 224) {
 					key = _getch();
-					if (key == 80 && self.current_component < (self.focusable_components.size() - 1)) /* down */
-						self.components[self.focusable_components[self.current_component++]]->set_focus(false);
-					else if (key == 72 && self.current_component > 0) /* up */
-						self.components[self.focusable_components[self.current_component--]]->set_focus(false);
-					else if (self.components[self.focusable_components[self.current_component]]->on_focus(key))
-						continue;
+					switch (key) {
+					case 80: /* down */
+						if (self.current_component < self.focusable_components.size() - 1)
+							self.components[self.focusable_components[self.current_component++]]->set_focus(false);
+						break;
+					case 72: /* up */
+						if (self.current_component > 0)
+							self.components[self.focusable_components[self.current_component--]]->set_focus(false);
+						break;
+					default:
+						if (self.components[self.focusable_components[self.current_component]]->on_focus(key))
+							continue;
+					}
 				}
 				else {
 					if (self.components[self.focusable_components[self.current_component]]->on_focus(key))
