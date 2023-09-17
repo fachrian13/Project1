@@ -216,24 +216,31 @@ private:
 
 class menu : public component {
 public:
-	menu(std::vector<std::string> menu, unsigned show = 10) :
-		menus(menu), canvas(menu.size() < show ? menu.size() : show, std::vector<pixel>(120, pixel(color::gray, color::black))) {
-		self.limit = menu.size() < show ? menu.size() : show;
+	menu(std::string name, std::vector<std::string> menu, unsigned width, unsigned show = 10) :
+		name(name), menus(menu) {
 		self.type = component_type::focusable;
+		self.limit = menu.size() < show ? menu.size() : show;
+		self.width = width + name.size();
+		self.canvas = std::vector<std::vector<pixel>>(menu.size() < show ? menu.size() : show, std::vector<pixel>(self.width, pixel(color::black, color::white)));
 	}
 
 	std::vector<std::vector<pixel>> render() override {
-		for (unsigned h = 0; h < self.limit; h++)
-			for (unsigned w = 0; w < 120; w++)
-				self.canvas[h][w].background = color::gray, self.canvas[h][w].character = ' ';
+		size_t name_size = self.name.size();
 
-		for (unsigned h = 0, s = start; s < self.limit + start; h++, s++) {
-			for (unsigned w = 0; w < self.menus[s].size(); w++)
-				self.canvas[h][w].character = self.menus[s][w];
-		}
+		for (size_t i = 0; i < name_size; i++)
+			self.canvas[0][i].character = self.name[i];
+
+		pixel focused = pixel(color::gray, color::black);
+		for (unsigned h = 0; h < self.limit; h++)
+			for (unsigned w = name_size; w < self.width; w++)
+				self.canvas[h][w] = focused;
+
+		for (unsigned h = 0, s = start; s < self.limit + start; h++, s++)
+			for (unsigned w = 0, ns = name_size; w < self.menus[s].size(); w++, ns++)
+				self.canvas[h][ns].character = self.menus[s][w];
 
 		if (self.get_focus())
-			for (unsigned w = 0; w < self.canvas[cursor].size(); w++)
+			for (unsigned w = name_size; w < self.canvas[cursor].size(); w++)
 				self.canvas[self.cursor][w].background = color::white;
 
 		return self.canvas;
@@ -263,7 +270,8 @@ private:
 	unsigned limit = 0;
 	unsigned cursor = 0;
 	unsigned start = 0;
-
+	unsigned width = 0;
+	std::string name = "";
 	std::vector<std::string> menus = {};
 	std::vector<std::vector<pixel>> canvas = {};
 };
@@ -271,7 +279,7 @@ private:
 class button : public component {
 public:
 	button(std::string name, std::function<void()> onclick = []() {}) :
-		name(name), onclick(onclick), canvas(1, std::vector<pixel>(name.size()+2, pixel())) {
+		name(name), onclick(onclick), canvas(1, std::vector<pixel>(name.size() + 2, pixel())) {
 		self.type = component_type::focusable;
 	}
 
@@ -424,45 +432,28 @@ private:
 };
 
 int main() {
-	auto logged = console(120, 30);
-	logged.add(std::make_shared<text>("========================"));
-	logged.add(std::make_shared<text>("   ANDA TELAH MASUK"));
-	logged.add(std::make_shared<text>("========================"));
+	auto c_form = console(120, 20);
+	auto i_nama_lengkap = std::make_shared<input>("Nama Lengkap  : ", 50);
+	auto i_gelar = std::make_shared<input>("Gelar Akademik: ", 50);
+	auto m_pendidikan = std::make_shared<menu>("Pendidikan    : ", std::vector<std::string>{ "SD", "SMP", "SMA", "D1", "D2", "D3", "S1", "S2", "S3" }, 50);
+	auto i_email = std::make_shared<input>("Email         : ", 50);
+	auto i_hp = std::make_shared<input>("Nomor HP/WA   : ", 50);
+	auto i_tempat_lahir = std::make_shared<input>("Tempat Lahir  : ", 50);
+	auto i_alamat = std::make_shared<input>("Alamat        : ", 50);
+	auto b_exit = std::make_shared<button>("Exit", [&c_form]() { c_form.stop(); });
 
-	auto salah_password = console(120, 30);
-	salah_password.add(std::make_shared<text>("========================="));
-	salah_password.add(std::make_shared<text>("   DASHBOARD SINARMART"));
-	salah_password.add(std::make_shared<text>("========================="));
-	salah_password.add(std::make_shared<text>("Username atau password salah"));
+	c_form.add(std::make_shared<text>("==========================="));
+	c_form.add(std::make_shared<text>("   SILAKAN ISI DATA DIRI"));
+	c_form.add(std::make_shared<text>("==========================="));
+	c_form.add(std::make_shared<separator>());
+	c_form.add(i_nama_lengkap);
+	c_form.add(i_gelar);
+	c_form.add(m_pendidikan);
+	c_form.add(i_email);
+	c_form.add(i_hp);
+	c_form.add(i_tempat_lahir);
+	c_form.add(i_alamat);
+	c_form.add(b_exit);
 
-	auto kosong = console(120, 30);
-	kosong.add(std::make_shared<text>("========================="));
-	kosong.add(std::make_shared<text>("   DASHBOARD SINARMART"));
-	kosong.add(std::make_shared<text>("========================="));
-	kosong.add(std::make_shared<text>("Silakan isi username dan password"));
-
-
-	auto dashboard = console(120, 30);
-	dashboard.add(std::make_shared<text>("========================="));
-	dashboard.add(std::make_shared<text>("   DASHBOARD SINARMART"));
-	dashboard.add(std::make_shared<text>("========================="));
-	dashboard.add(std::make_shared<text>("Silakan login ke akun anda"));
-	dashboard.add(std::make_shared<separator>());
-	auto i_username = std::make_shared<input>("Username: ", 20);
-	dashboard.add(i_username);
-	auto i_password = std::make_shared<input>("Password: ", 20);
-	i_password->hide(true);
-	dashboard.add(i_password);
-	auto b_login = std::make_shared<button>("Login", [&]() {
-		if (i_username->get_value().empty() || i_password->get_value().empty())
-			kosong.run();
-		else if (i_username->get_value() == "admin" && i_password->get_value() == "admin")
-			logged.run();
-		else
-			salah_password.run();
-		});
-	dashboard.add(b_login);
-	auto b_exit = std::make_shared<button>("Exit", [&dashboard]() { dashboard.stop(); });
-	dashboard.add(b_exit);
-	dashboard.run();
+	c_form.run();
 }
