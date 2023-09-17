@@ -103,19 +103,19 @@ public:
 			self.canvas[0][i] = focused_color;
 
 		if (self.focus && self.content.empty() && self.placeholder.empty())
-			for (size_t i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length + self.name.size(); i++, f++)
+			for (size_t i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length - self.name.size(); i++, f++)
 				if (i != self.placeholder.size())
 					self.canvas[0][f].character = self.placeholder[i];
 				else
 					break;
 		else if (self.password)
-			for (size_t i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length + self.name.size(); i++, f++)
+			for (size_t i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length - self.name.size(); i++, f++)
 				if (i != self.content.size())
 					self.canvas[0][f].character = '*';
 				else
 					break;
 		else
-			for (size_t i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length + self.name.size(); i++, f++)
+			for (size_t i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length - self.name.size(); i++, f++)
 				if (i != self.content.size())
 					self.canvas[0][f].character = self.content[i];
 				else
@@ -136,8 +136,8 @@ public:
 					self.cursor.field++;
 				else
 					self.cursor.start++;
-				return true;
 			}
+			return true;
 
 		case 75: /* left arrow */
 			if (self.cursor.content > 0) {
@@ -147,8 +147,8 @@ public:
 					self.cursor.field--;
 				else
 					self.cursor.start--;
-				return true;
 			}
+			return true;
 
 		case 8: /* backspace */
 			if (self.cursor.content > 0) {
@@ -158,8 +158,8 @@ public:
 					self.cursor.start--;
 				else
 					self.cursor.field--;
-				return true;
 			}
+			return true;
 
 		default:
 			if (key >= 32 && key <= 126) { /* writeable character */
@@ -342,7 +342,7 @@ public:
 				int key = _getch();
 				if (key == 224) {
 					key = _getch();
-					if (key == 80 && self.current_component < self.focusable_components.size() - 1) /* down */
+					if (key == 80 && self.current_component < (self.focusable_components.size() - 1)) /* down */
 						self.components[self.focusable_components[self.current_component++]]->set_focus(false);
 					else if (key == 72 && self.current_component > 0) /* up */
 						self.components[self.focusable_components[self.current_component--]]->set_focus(false);
@@ -352,12 +352,12 @@ public:
 				else {
 					if (self.components[self.focusable_components[self.current_component]]->on_focus(key))
 						continue;
-					else if (key == 106 && self.current_component < self.focusable_components.size() - 1) /* j */
+					else if (key == 106 && self.current_component < (self.focusable_components.size() - 1)) /* j */
 						self.components[self.focusable_components[self.current_component++]]->set_focus(false);
 					else if (key == 107 && self.current_component > 0)
 						self.components[self.focusable_components[self.current_component--]]->set_focus(false);
 					else if (key == 9) {
-						if (self.current_component < self.focusable_components.size() - 1)
+						if (self.current_component < (self.focusable_components.size() - 1))
 							self.components[self.focusable_components[self.current_component++]]->set_focus(false);
 						else
 							self.components[self.focusable_components[self.current_component]]->set_focus(false), self.current_component = 0;
