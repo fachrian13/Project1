@@ -1,10 +1,10 @@
 #pragma once
-#include <iostream>
+#include <conio.h>
 #include <string>
 #include <vector>
 #include <functional>
 #include <memory>
-#include <conio.h>
+#include <iostream>
 
 #define self (*this)
 
@@ -20,14 +20,13 @@ enum class color : unsigned {
 	original = 39,
 	gray = 90,
 	brightred = 91,
-	brightgreen = 92,
-	brightyellow = 93,
-	brightblue = 94,
-	brightmagenta = 95,
-	brightcyan = 96,
-	brightwhite = 97
+	bright_green = 92,
+	bright_yellow = 93,
+	bright_blue = 94,
+	bright_magenta = 95,
+	bright_cyan = 96,
+	bright_white = 97
 };
-
 class pixel {
 public:
 	color background = color::black;
@@ -35,10 +34,8 @@ public:
 	char character = ' ';
 
 	pixel() {}
-
 	pixel(color background, color foreground, char character = ' ') :
 		background(background), foreground(foreground), character(character) {}
-
 	inline std::string tostring() const {
 		return "\x1b["
 			+ std::to_string(static_cast<unsigned>(self.foreground))
@@ -48,49 +45,33 @@ public:
 			+ self.character
 			+ "\x1b[0m";
 	}
-
 	friend bool operator ==(const pixel& current, const pixel& other) {
 		return current.background == other.background && current.foreground == other.foreground;
 	}
-
 	friend bool operator!=(const pixel& current, const pixel& other) {
 		return !(current == other);
 	}
-
-	friend std::ostream& operator <<(std::ostream& out, const pixel& value) {
-		return out << "\x1b["
-			<< std::to_string(static_cast<unsigned>(value.foreground))
-			<< ";"
-			<< std::to_string(static_cast<unsigned>(value.background) + 10)
-			<< "m"
-			<< value.character
-			<< "\x1b[0m";
-	}
 };
-
 enum class component_type {
 	render_only,
 	focusable
 };
-
 class component {
 public:
 	virtual std::vector<std::vector<pixel>> render() = 0;
 	virtual bool on_focus(int key) { return false; }
-	virtual void set_focus(bool value) { self.focus = value; }
-	virtual bool get_focus() { return self.focus; }
-	component_type get_type() { return self.type; }
+	bool get_focus() const { return self.focus; }
+	void set_focus(const bool value) { self.focus = value; }
+	component_type get_type() const { return self.type; }
 
 protected:
-	bool focus = false;
 	component_type type = component_type::render_only;
+	bool focus = false;
 };
-
-class text : public component {
+class text final : public component {
 public:
 	text(std::string value) :
-		content(value), canvas(1, std::vector<pixel>(self.content.size(), pixel())) {}
-
+		content(value), canvas(1, std::vector<pixel>(value.size(), pixel())) {}
 	std::vector<std::vector<pixel>> render() override {
 		for (size_t i = 0; i < self.content.size(); i++)
 			canvas[0][i].character = self.content[i];
@@ -102,39 +83,39 @@ private:
 	std::string content;
 	std::vector<std::vector<pixel>> canvas;
 };
-
-class input : public component {
+class input final : public component {
 public:
 	input(std::string name, unsigned length, std::string placeholder = "") :
 		name(name), placeholder(placeholder) {
 		self.type = component_type::focusable;
-		self.canvas = std::vector<std::vector<pixel>>(1, std::vector<pixel>(length + name.size(), pixel(color::black, color::white)));
-		self.length = name.size() + length;
-		self.cursor.field = name.size();
-	}
+		self.length = static_cast<unsigned>(name.size()) + length;
+		self.cursor.field = static_cast<unsigned>(name.size());
+		self.canvas = std::vector<std::vector<pixel>>(1, std::vector<pixel>(length + name.size(), pixel()));
 
-	std::vector<std::vector<pixel>> render() override {
+		/* adding name into front of canvas */
 		for (size_t i = 0; i < self.name.size(); i++)
 			self.canvas[0][i].character = self.name[i];
+	}
+	std::vector<std::vector<pixel>> render() override {
+		// set color when focused or not
+		pixel focused_color = self.focus ? pixel(color::white, color::black) : pixel(color::gray, color::black);
+		for (size_t i = name.size(); i < self.length; i++)
+			self.canvas[0][i] = focused_color;
 
-		pixel focused = self.get_focus() ? pixel(color::white, color::black) : pixel(color::gray, color::black);
-		for (unsigned i = name.size(); i < self.length; i++)
-			self.canvas[0][i] = focused;
-
-		if (!self.get_focus() && self.content.empty() && !self.placeholder.empty())
-			for (unsigned i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length + self.name.size(); i++, f++)
+		if (self.focus && self.content.empty() && self.placeholder.empty())
+			for (size_t i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length + self.name.size(); i++, f++)
 				if (i != self.placeholder.size())
 					self.canvas[0][f].character = self.placeholder[i];
 				else
 					break;
 		else if (self.password)
-			for (unsigned i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length - self.name.size(); i++, f++)
+			for (size_t i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length + self.name.size(); i++, f++)
 				if (i != self.content.size())
 					self.canvas[0][f].character = '*';
 				else
 					break;
 		else
-			for (unsigned i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length - self.name.size(); i++, f++)
+			for (size_t i = self.cursor.start, f = self.name.size(); i < self.cursor.start + self.length + self.name.size(); i++, f++)
 				if (i != self.content.size())
 					self.canvas[0][f].character = self.content[i];
 				else
@@ -145,10 +126,9 @@ public:
 
 		return self.canvas;
 	}
-
 	bool on_focus(int key) override {
 		switch (key) {
-		case 77: // right arrow
+		case 77: /* right arrow */
 			if (self.cursor.content < self.content.size()) {
 				self.cursor.content++;
 
@@ -156,10 +136,10 @@ public:
 					self.cursor.field++;
 				else
 					self.cursor.start++;
+				return true;
 			}
-			return true;
-			break;
-		case 75: // left arrow
+
+		case 75: /* left arrow */
 			if (self.cursor.content > 0) {
 				self.cursor.content--;
 
@@ -167,10 +147,10 @@ public:
 					self.cursor.field--;
 				else
 					self.cursor.start--;
+				return true;
 			}
-			return true;
-			break;
-		case 8: // backspace
+
+		case 8: /* backspace */
 			if (self.cursor.content > 0) {
 				self.content.erase(--self.cursor.content, 1);
 
@@ -178,12 +158,12 @@ public:
 					self.cursor.start--;
 				else
 					self.cursor.field--;
+				return true;
 			}
-			return true;
-			break;
+
 		default:
-			if (key >= 32 && key <= 126) { // writeable character
-				self.content.insert(self.cursor.content++, 1, (char)key);
+			if (key >= 32 && key <= 126) { /* writeable character */
+				self.content.insert(self.cursor.content++, 1, static_cast<char>(key));
 
 				if (self.cursor.field <= self.length - 2)
 					self.cursor.field++;
@@ -195,10 +175,8 @@ public:
 
 		return false;
 	}
-
-	void hide(bool value) { self.password = true; }
-
 	std::string get_value() const { return self.content; }
+	void hide(const bool value) { self.password = value; }
 
 private:
 	bool password = false;
@@ -207,108 +185,103 @@ private:
 	std::string content = "";
 	std::string placeholder = "";
 	std::vector<std::vector<pixel>> canvas = {};
-
-	struct {
+	class {
+	public:
 		unsigned start = 0;
 		unsigned content = 0;
 		unsigned field = 0;
 	} cursor;
 };
-
-class menu : public component {
+class dropdown final : public component {
 public:
-	menu(std::string name, std::vector<std::string> menu, unsigned width, unsigned show = 10) :
-		name(name), menus(menu) {
+	dropdown(std::string name, std::vector<std::string> value, unsigned length, unsigned show = 10) :
+		name(name), content(value) {
 		self.type = component_type::focusable;
-		self.limit = menu.size() < show ? menu.size() : show;
-		self.width = width + name.size();
-		self.canvas = std::vector<std::vector<pixel>>(menu.size() < show ? menu.size() : show, std::vector<pixel>(self.width, pixel(color::black, color::white)));
+		self.limit = static_cast<unsigned>(value.size()) < show ? static_cast<unsigned>(value.size()) : show;
+		self.width = static_cast<unsigned>(name.size()) + length;
+		self.canvas = std::vector<std::vector<pixel>>(value.size() < show ? value.size() : show, std::vector<pixel>(self.width, pixel(color::black, color::white)));
 	}
-
 	std::vector<std::vector<pixel>> render() override {
-		size_t name_size = self.name.size();
-
-		for (size_t i = 0; i < name_size; i++)
+		/* adding name into front of canvas */
+		for (size_t i = 0; i < self.name.size(); i++)
 			self.canvas[0][i].character = self.name[i];
 
-		if (self.get_focus()) {
-			pixel focused = pixel(color::gray, color::black);
+		if (self.focus) {
+			/* erase all content in canvas */
+			pixel focused_color = pixel(color::gray, color::black);
 			for (unsigned h = 0; h < self.limit; h++)
-				for (unsigned w = name_size; w < self.width; w++)
-					self.canvas[h][w] = focused;
+				for (unsigned w = static_cast<unsigned>(self.name.size()); w < self.width; w++)
+					self.canvas[h][w] = focused_color;
 
-			for (unsigned w = name_size; w < self.canvas[cursor].size(); w++)
+			/* set focused index background to white */
+			for (size_t w = self.name.size(); w < self.canvas[self.cursor].size(); w++)
 				self.canvas[self.cursor][w].background = color::white;
 
+			/* adding content into field */
 			for (unsigned h = 0, s = start; s < self.limit + start; h++, s++)
-				for (unsigned w = 0, ns = name_size; w < self.menus[s].size(); w++, ns++) {
+				for (size_t w = 0, ns = self.name.size(); w < self.content[s].size(); w++, ns++)
 					if (ns == self.width)
 						break;
-
-					self.canvas[h][ns].character = self.menus[s][w];
-				}
+					else self.canvas[h][ns].character = self.content[s][w];
 
 			return self.canvas;
 		}
 		else {
 			auto placeholder = std::vector<pixel>(self.width, pixel());
 
+			/* adding name into front of canvas */
 			for (size_t i = 0; i < self.name.size(); i++)
 				placeholder[i].character = self.name[i];
 
-			for (unsigned w = name_size, i = 0; w < self.width; w++, i++) {
-				if (w == self.width || i == self.menus[self.index].size())
+			/* adding content into canvas */
+			for (size_t w = name.size(), i = 0; w < self.width; w++, i++)
+				if (w == self.width || i == self.content[self.current_index].size())
 					break;
-
-				placeholder[w].character = self.menus[self.index][i];
-			}
+				else
+					placeholder[w].character = self.content[self.current_index][i];
 
 			return std::vector<std::vector<pixel>>(1, placeholder);
 		}
 	}
-
 	bool on_focus(int key) override {
 		switch (key) {
-		case 106: // j
+		case 106: /* j */
 			if (self.cursor < limit - 1)
-				self.cursor++, self.index++;
-			else if (start < self.menus.size() - limit)
-				start++, self.index++;
+				self.cursor++, self.current_index++;
+			else if (self.start < self.content.size() - limit)
+				self.start++, self.current_index++;
 			return true;
-			break;
-		case 107: // k
+
+		case 107: /* k */
 			if (self.cursor > 0)
-				self.cursor--, self.index--;
+				self.cursor--, self.current_index--;
 			else if (start > 0)
-				start--, self.index--;
+				self.start--, self.current_index--;
 			return true;
-			break;
 		}
+
 		return false;
 	}
-
-	std::string get_value() const { return self.menus[self.index]; }
+	std::string get_value() const { return self.content[self.current_index]; }
 
 private:
 	unsigned limit = 0;
 	unsigned cursor = 0;
 	unsigned start = 0;
 	unsigned width = 0;
-	unsigned index = 0;
+	unsigned current_index = 0;
 	std::string name = "";
-	std::vector<std::string> menus = {};
+	std::vector<std::string> content = {};
 	std::vector<std::vector<pixel>> canvas = {};
 };
-
-class button : public component {
+class button final : public component {
 public:
-	button(std::string name, std::function<void()> onclick = []() {}) :
-		name(name), onclick(onclick), canvas(1, std::vector<pixel>(name.size() + 2, pixel())) {
+	button(std::string name, std::function<void()> on_click = {}) :
+		name(name), on_click(on_click), canvas(1, std::vector<pixel>(name.size() + 2, pixel())) {
 		self.type = component_type::focusable;
 	}
-
 	std::vector<std::vector<pixel>> render() override {
-		self.canvas = std::vector<std::vector<pixel>>(1, std::vector<pixel>(self.name.size() + 2, self.get_focus() ? pixel(color::white, color::black) : pixel()));
+		self.canvas = std::vector<std::vector<pixel>>(1, std::vector<pixel>(self.name.size() + 2, self.focus ? pixel(color::white, color::black) : pixel()));
 
 		self.canvas[0].front().character = '[';
 		for (size_t i = 0; i < self.name.size(); i++)
@@ -317,142 +290,129 @@ public:
 
 		return self.canvas;
 	}
-
-	bool on_focus(int key) {
+	bool on_focus(int key) override {
 		switch (key) {
-		case 13:
-			self.onclick();
+		case 13: /* return */
+			self.on_click();
 			return true;
-			break;
 		}
+
 		return false;
 	}
 
 private:
-	std::string name;
-	std::function<void()> onclick;
-	std::vector<std::vector<pixel>> canvas;
+	std::string name = "";
+	std::function<void()> on_click = {};
+	std::vector<std::vector<pixel>> canvas = {};
 };
-
-class separator : public component {
+class separator final : public component {
 public:
-	separator(unsigned height = 1) :
-		height(height), canvas(self.height, std::vector<pixel>(120, pixel())) {}
+	separator(unsigned height = 1, unsigned width = 120) :
+		height(height), width(width), canvas(self.height, std::vector<pixel>(width, pixel())) {}
+	std::vector<std::vector<pixel>> render() override { return self.canvas; }
 
-	std::vector<std::vector<pixel>> render() override {
-		return self.canvas;
-	}
 private:
-	unsigned height;
-	std::vector<std::vector<pixel>> canvas;
+	unsigned height = 0;
+	unsigned width = 0;
+	std::vector<std::vector<pixel>> canvas = {};
 };
-
 class console {
 public:
 	console(unsigned width, unsigned height) :
-		width(width), height(height), canvas(height, std::vector<pixel>(width, pixel())) {}
-
+		width(width), height(height), canvas(height, std::vector<pixel>(width, pixel())) {
+	}
 	void add(std::shared_ptr<component> value) {
 		self.components.push_back(value);
 
 		if (value->get_type() == component_type::focusable)
-			self.focusable_component.push_back(self.components.size() - 1);
+			self.focusable_components.push_back(self.components.size() - 1);
 	}
-
-
-	void stop() { self.loop = false; }
-
 	void run() {
-		loop = true;
+		self.running = true;
 
-		if (!focusable_component.empty()) {
-			while (loop) {
-				self.components[self.focusable_component[self.current]]->set_focus(true);
-				self.write();
+		if (focusable_components.empty()) {
+			self._write_();
+			int key = _getch();
+		}
+		else {
+			while (self.running) {
+				self.components[self.focusable_components[self.current_component]]->set_focus(true);
+				self._write_();
 
 				int key = _getch();
-
 				if (key == 224) {
 					key = _getch();
-
-					switch (key) {
-					case 80: // down
-						if (self.current < self.focusable_component.size() - 1)
-							self.components[self.focusable_component[self.current++]]->set_focus(false);
-						break;
-					case 72: // up
-						if (self.current > 0)
-							self.components[self.focusable_component[self.current--]]->set_focus(false);
-						break;
-					default:
-						if (self.components[self.focusable_component[self.current]]->on_focus(key))
-							continue;
-					}
+					if (key == 80 && self.current_component < self.focusable_components.size() - 1) /* down */
+						self.components[self.focusable_components[self.current_component++]]->set_focus(false);
+					else if (key == 72 && self.current_component > 0) /* up */
+						self.components[self.focusable_components[self.current_component--]]->set_focus(false);
+					else if (self.components[self.focusable_components[self.current_component]]->on_focus(key))
+						continue;
 				}
 				else {
-					if (self.components[self.focusable_component[self.current]]->on_focus(key))
+					if (self.components[self.focusable_components[self.current_component]]->on_focus(key))
 						continue;
-					else if (key == 106 && self.current < self.focusable_component.size() - 1)
-						self.components[self.focusable_component[self.current++]]->set_focus(false);
-					else if (key == 107 && self.current > 0)
-						self.components[self.focusable_component[self.current--]]->set_focus(false);
+					else if (key == 106 && self.current_component < self.focusable_components.size() - 1) /* j */
+						self.components[self.focusable_components[self.current_component++]]->set_focus(false);
+					else if (key == 107 && self.current_component > 0)
+						self.components[self.focusable_components[self.current_component--]]->set_focus(false);
 					else if (key == 9) {
-						if (self.current < self.focusable_component.size() - 1)
-							self.components[self.focusable_component[self.current++]]->set_focus(false);
+						if (self.current_component < self.focusable_components.size() - 1)
+							self.components[self.focusable_components[self.current_component++]]->set_focus(false);
 						else
-							self.components[self.focusable_component[self.current]]->set_focus(false), self.current = 0;
+							self.components[self.focusable_components[self.current_component]]->set_focus(false), self.current_component = 0;
 					}
 				}
 			}
 		}
-		else {
-			self.write();
-			std::cin.get();
-		}
 	}
+	void stop() { self.running = false; }
 
 private:
-	void write() {
+	void _write_() {
 		unsigned cursor_height = 0;
 		std::string output = "\x1b[0;0H";
 		std::vector<std::vector<std::vector<pixel>>> rendered;
-		self.canvas = std::vector<std::vector<pixel>>(self.height, std::vector<pixel>(self.width, pixel()));
+		self.canvas = std::vector<std::vector<pixel>>(height, std::vector<pixel>(self.width, pixel()));
 
 		for (size_t i = 0; i < self.components.size(); i++)
 			rendered.push_back(self.components[i]->render());
 
-		for (unsigned i = 0; i < rendered.size(); i++) {
-			for (unsigned h = 0; h < rendered[i].size(); h++) {
+		for (size_t i = 0; i < rendered.size(); i++) {
+			for (size_t h = 0; h < rendered[i].size(); h++) {
 				if (cursor_height == self.height)
 					break;
 
-				for (unsigned w = 0; w < rendered[i][h].size(); w++) {
+				for (size_t w = 0; w < rendered[i][h].size(); w++)
 					if (w == self.width)
 						break;
+					else
+						self.canvas[cursor_height][w] = rendered[i][h][w];
 
-					self.canvas[cursor_height][w] = rendered[i][h][w];
-				}
 				cursor_height++;
 			}
-			if (rendered[i].size() < 1) cursor_height++;
+
+			if (rendered[i].size() < 1)
+				cursor_height++;
 		}
 
-		for (const auto& height : self.canvas) {
-			for (const auto& width : height)
-				output += width.tostring();
+		for (size_t h = 0; h < self.canvas.size(); h++) {
+			for (size_t w = 0; w < self.canvas[h].size(); w++)
+				output += self.canvas[h][w].tostring();
 
 			output += '\n';
 		}
+
 		output.pop_back();
 		std::cout << output;
 	}
 
 private:
-	bool loop = true;
 	unsigned width = 0;
 	unsigned height = 0;
-	unsigned current = 0;
-	std::vector<std::shared_ptr<component>> components;
-	std::vector<unsigned> focusable_component;
+	unsigned current_component = 0;
+	bool running = true;
+	std::vector<std::shared_ptr<component>> components = {};
+	std::vector<size_t> focusable_components = {};
 	std::vector<std::vector<pixel>> canvas = {};
 };
