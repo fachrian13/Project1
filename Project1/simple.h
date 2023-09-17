@@ -340,6 +340,7 @@ public:
 				self._write_();
 
 				int key = _getch();
+
 				if (key == 224) {
 					key = _getch();
 					switch (key) {
@@ -361,9 +362,9 @@ public:
 						continue;
 					else if (key == 106 && self.current_component < (self.focusable_components.size() - 1)) /* j */
 						self.components[self.focusable_components[self.current_component++]]->set_focus(false);
-					else if (key == 107 && self.current_component > 0)
+					else if (key == 107 && self.current_component > 0) /* k */
 						self.components[self.focusable_components[self.current_component--]]->set_focus(false);
-					else if (key == 9) {
+					else if (key == 9) { /* tab */
 						if (self.current_component < (self.focusable_components.size() - 1))
 							self.components[self.focusable_components[self.current_component++]]->set_focus(false);
 						else
