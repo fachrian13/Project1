@@ -343,10 +343,18 @@ public:
 				self._write_();
 
 				ReadConsoleInput(self.input_handle, &self.input_record, 1, &self.char_number);
-
-				if (self.input_record.Event.KeyEvent.bKeyDown) {
+				
+				if (self.input_record.EventType == KEY_EVENT && self.input_record.Event.KeyEvent.bKeyDown) {
 					if (self.components[self.focusable_components[self.current_component]]->on_focus(self.input_record))
 						continue;
+
+					if (GetKeyState(VK_SHIFT) & 0x8000 && self.input_record.Event.KeyEvent.wVirtualKeyCode == VK_TAB) {
+							if (self.current_component > 0)
+								self.components[self.focusable_components[self.current_component--]]->set_focus(false);
+							else
+								self.components[self.focusable_components[self.current_component]]->set_focus(false), self.current_component = self.focusable_components.size() - 1;
+							continue;
+					}
 
 					switch (self.input_record.Event.KeyEvent.wVirtualKeyCode) {
 					case VK_DOWN:
@@ -368,12 +376,12 @@ public:
 					switch (self.input_record.Event.KeyEvent.uChar.AsciiChar) {
 					case 'j':
 					case 'J':
-						if (self.current_component < (self.focusable_components.size() - 1)) /* j */
+						if (self.current_component < (self.focusable_components.size() - 1))
 							self.components[self.focusable_components[self.current_component++]]->set_focus(false);
 						break;
 					case 'k':
 					case 'K':
-						if (self.current_component > 0) /* k */
+						if (self.current_component > 0)
 							self.components[self.focusable_components[self.current_component--]]->set_focus(false);
 						break;
 					}
