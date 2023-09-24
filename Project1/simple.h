@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -272,7 +273,7 @@ public:
 
 		/* placeholder section */
 		/* set pixel */
-		for (size_t f = self.name.size(); f < self.width; f++) self.canvas[0][f] = pixel();
+		for (size_t f = self.name.size(); f < self.width; f++) self.placeholder[0][f] = pixel();
 
 		for (size_t i = 0, f = self.name.size(); f < self.width; i++, f++) {
 			if (i == self.content[self.index].size()) break;
@@ -311,6 +312,68 @@ private:
 	short show_start = 0;
 	short index = 0;
 };
+class choice final : public component {
+public:
+	choice(std::string name, std::initializer_list<std::string> value) {
+		self.type = component_type::focus;
+		self.name = name;
+		self.content = value;
+		self.width = static_cast<short>(name.size()) + static_cast<short>(value.size() - 1);
+
+		for (const auto& i : value) self.width += static_cast<short>(i.size());
+	}
+	rectangle& render() override {
+		self.canvas = rectangle(1, line(self.width, pixel()));
+
+		size_t field = self.name.size();
+
+		for (size_t i = 0; i < self.name.size(); i++) self.canvas[0][i].character = self.name[i];
+
+		if (self.focus) {
+			for (size_t i = 0; i < self.content.size(); i++) {
+				for (size_t j = 0; j < self.content[i].size(); j++, field++)
+					if (i == self.index) self.canvas[0][field] = pixel(color::white, color::black, self.content[i][j]);
+					else self.canvas[0][field] = pixel(color::black, color::white, self.content[i][j]);
+
+				if (field < self.width) self.canvas[0][field++].character = '|';
+			}
+
+			return self.canvas;
+		}
+
+		for (size_t i = 0; i < self.content.size(); i++) {
+			for (size_t j = 0; j < self.content[i].size(); j++, field++)
+				if (i == self.index) self.canvas[0][field] = pixel(color::gray, color::black, self.content[i][j]);
+				else self.canvas[0][field] = pixel(color::black, color::white, self.content[i][j]);
+
+			if (field < self.width) self.canvas[0][field++].character = '|';
+		}
+
+		return self.canvas;
+	}
+	bool on_event(const KEY_EVENT_RECORD& key) override {
+		switch (key.uChar.AsciiChar) {
+		case 'l':
+		case 'L':
+			if (index < self.content.size() - 1) index++;
+			return true;
+		case 'h':
+		case 'H':
+			if (index > 0) index--;
+			return true;
+		}
+
+		return false;
+	}
+	std::string value() const { return self.content[self.index]; }
+
+private:
+	std::string name = {};
+	std::vector<std::string> content = {};
+	rectangle canvas = {};
+	short width = 0;
+	short index = 0;
+};
 
 class window {
 public:
@@ -346,9 +409,6 @@ protected:
 	DWORD input_size = 0;
 	short width = 0;
 	short height = 0;
-	short current_height = 0;
-	std::string output = "";
-	std::vector<rectangle> component_rendered = {};
 
 protected:
 	console(short width, short height) {
@@ -385,42 +445,42 @@ protected:
 	virtual void main() = 0;
 	void render(window& window) {
 		/* clearing environment */
-		self.current_height = 0;
-		self.output = "\x1b[0;0H";
-		self.component_rendered.clear();
+		short current_height = 0;
+		std::string output = "\x1b[0;0H";
+		std::vector<rectangle> component_rendered;
 		window.canvas = rectangle(window.height, line(window.width, pixel()));
 
 		/* set focus into current component */
 		if (!window.focusable_component.empty()) window.components[window.focusable_component[window.current_component]]->focus = true;
 
 		/* render every single component */
-		for (const auto& component : window.components) self.component_rendered.push_back(component->render());
+		for (const auto& component : window.components) component_rendered.push_back(component->render());
 
 		/* apply rendered component into canvas */
-		for (size_t i = 0; i < self.component_rendered.size(); i++) {
-			for (size_t h = 0; h < self.component_rendered[i].size(); h++) {
-				if (self.current_height == window.height) break;
+		for (size_t i = 0; i < component_rendered.size(); i++) {
+			for (size_t h = 0; h < component_rendered[i].size(); h++) {
+				if (current_height == window.height) break;
 
-				for (size_t w = 0; w < self.component_rendered[i][h].size(); w++) {
+				for (size_t w = 0; w < component_rendered[i][h].size(); w++) {
 					if (w == window.width) break;
 
-					window.canvas[self.current_height][w] = self.component_rendered[i][h][w];
+					window.canvas[current_height][w] = component_rendered[i][h][w];
 				}
-				self.current_height++;
+				current_height++;
 			}
 
-			if (self.component_rendered[i].size() < 1) self.current_height++;
+			if (component_rendered[i].size() < 1) current_height++;
 		}
 
 		/* write into buffer */
 		for (short h = 0; h < window.height; h++) {
 			for (short w = 0; w < window.width; w++)
-				self.output += window.canvas[h][w].to_string();
+				output += window.canvas[h][w].to_string();
 
-			self.output += '\n';
+			output += '\n';
 		}
-		self.output.pop_back();
-		std::cout << self.output;
+		output.pop_back();
+		std::cout << output;
 
 		/* event handling */
 		if (!window.focusable_component.empty()) {
