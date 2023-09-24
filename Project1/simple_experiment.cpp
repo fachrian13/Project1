@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
-#include <conio.h>
+#include <algorithm>
 
 #define self (*this)
 
@@ -219,7 +219,7 @@ public:
 
 		return false;
 	}
-	std::string value() const {		return self.content;	}
+	std::string value() const { return self.content; }
 
 private:
 	short length = 0;
@@ -233,6 +233,91 @@ private:
 		short content = 0;
 		short field = 0;
 	} cursor;
+};
+class dropdown final : public component {
+public:
+	dropdown(std::string name, std::initializer_list<std::string> value, short show = 10) {
+		self.type = component_type::focus;
+		self.name = name;
+		self.content = value;
+		self.width = 58 + static_cast<short>(name.size());
+		// self.width = static_cast<short>(std::max_element(value.begin(), value.end(), [](const std::string& v1, const std::string& v2) { return v1.size() < v2.size(); })->size()) + static_cast<short>(name.size());
+		self.limit = static_cast<short>(value.size()) < show ? static_cast<short>(value.size()) : show;
+		self.canvas = std::vector<std::vector<pixel>>(value.size() < show ? value.size() : show, std::vector<pixel>(self.width, pixel()));
+		self.placeholder = std::vector<std::vector<pixel>>(1, std::vector<pixel>(self.width, pixel()));
+	}
+	std::vector<std::vector<pixel>>& render() override {
+		/* add name into first of canvas */
+		for (size_t i = 0; i < self.name.size(); i++)
+			self.canvas[0][i].character = self.name[i];
+
+		if (self.focus) {
+			pixel focused_color = pixel(color::gray, color::black);
+			for (short h = 0; h < self.limit; h++)
+				for (size_t w = self.name.size(); w < self.width; w++)
+					self.canvas[h][w] = focused_color;
+
+			for (size_t w = self.name.size(); w < self.canvas[self.cursor].size(); w++)
+				self.canvas[self.cursor][w].background = color::white;
+
+			for (size_t h = 0, s = start; s < self.limit + start; h++, s++)
+				for (size_t w = 0, ns = self.name.size(); w < self.content[s].size(); w++, ns++)
+					if (ns == self.width)
+						break;
+					else
+						self.canvas[h][ns].character = self.content[s][w];
+
+			return self.canvas;
+		}
+		else {
+			self.placeholder = std::vector<std::vector<pixel>>(1, std::vector<pixel>(self.width, pixel()));
+
+			for (size_t i = 0; i < self.name.size(); i++)
+				self.placeholder[0][i].character = self.name[i];
+
+			for (size_t w = name.size(), i = 0; w < self.width; w++, i++)
+				if (w == self.width || i == self.content[self.current_index].size())
+					break;
+				else
+					self.placeholder[0][w].character = self.content[self.current_index][i];
+
+			return self.placeholder;
+		}
+	}
+	bool on_event(const KEY_EVENT_RECORD& input_event) {
+		switch (input_event.uChar.AsciiChar) {
+		case 'j':
+		case 'J':
+			if (self.cursor < limit - 1)
+				self.cursor++, self.current_index++;
+			else if (self.start < self.content.size() - limit)
+				self.start++, self.current_index++;
+			return true;
+		case 'k':
+		case 'K':
+			if (self.cursor > 0)
+				self.cursor--, self.current_index--;
+			else if (start > 0)
+				self.start--, self.current_index--;
+			return true;
+		}
+
+		return false;
+	}
+	std::string value() const {
+		return self.content[self.current_index];
+	}
+
+private:
+	short width = 0;
+	short cursor = 0;
+	short start = 0;
+	short limit = 0;
+	short current_index = 0;
+	std::string name = "";
+	std::vector<std::string> content = {};
+	std::vector<std::vector<pixel>> canvas = {};
+	std::vector<std::vector<pixel>> placeholder = {};
 };
 class window {
 public:
@@ -412,9 +497,123 @@ public:
 private:
 	void main() override {
 		auto main_window = window(self.width, self.height);
-		auto input_username = std::make_shared<input>("Username: ", 20, "John Doe");
-		auto input_password = std::make_shared<input>("Password: ", 20, "******");
+		auto input_username = std::make_shared<input>("Username         : ", 20, "John Doe");
+		auto input_password = std::make_shared<input>("Password         : ", 20, "******");
 		input_password->password = true;
+		auto dropdown_lain = std::make_shared<dropdown>(
+			"Pilih salah satu : ",
+			std::initializer_list<std::string> {
+			"Adaptive bi - directional hierarchy",
+				"Adaptive intangible frame",
+				"Advanced static process improvement",
+				"Ameliorated directional emulation",
+				"Assimilated 24 / 7 archive",
+				"Automated 4thgeneration website",
+				"Balanced analyzing groupware",
+				"Balanced multimedia knowledgebase",
+				"Centralized attitude - oriented capability",
+				"Centralized leadingedge moratorium",
+				"Centralized non - volatile capability",
+				"Centralized secondary time - frame",
+				"Compatible analyzing intranet",
+				"Configurable zero administration Graphical User Interface",
+				"Cross - group user - facing focus group",
+				"Customer - focused explicit frame",
+				"De - engineered fault - tolerant challenge",
+				"De - engineered systemic artificial intelligence",
+				"De - engineered transitional strategy",
+				"Distributed impactful customer loyalty",
+				"Diverse exuding installation",
+				"Enhanced foreground collaboration",
+				"Enhanced intangible time - frame",
+				"Enterprise - wide executive installation",
+				"Extended content - based methodology",
+				"Extended human - resource intranet",
+				"Face - to - face high - level conglomeration",
+				"Face - to - face well - modulated customer loyalty",
+				"Front - line clear - thinking encryption",
+				"Front - line systematic help - desk",
+				"Function - based fault - tolerant concept",
+				"Fundamental asynchronous capability",
+				"Fundamental stable info - mediaries",
+				"Future - proofed radical implementation",
+				"Grass - roots methodical info - mediaries",
+				"Grass - roots radical parallelism",
+				"Horizontal empowering knowledgebase",
+				"Innovative background definition",
+				"Intuitive local adapter",
+				"Managed demand - driven website",
+				"Managed human - resource policy",
+				"Mandatory coherent synergy",
+				"Monitored client - server implementation",
+				"Multi - channeled 3rdgeneration open system",
+				"Multi - lateral scalable protocol",
+				"Multi - layered composite paradigm",
+				"Multi - tiered secondary productivity",
+				"Object - based optimizing model",
+				"Object - based value - added database",
+				"Open - architected well - modulated capacity",
+				"Open - source zero administration hierarchy",
+				"Optional exuding superstructure",
+				"Optional non - volatile open system",
+				"Organic logistical leverage",
+				"Organic non - volatile hierarchy",
+				"Organized empowering forecast",
+				"Persevering contextually - based approach",
+				"Persevering exuding budgetary management",
+				"Persistent interactive circuit",
+				"Persistent real - time customer loyalty",
+				"Persistent tertiary focus group",
+				"Persistent tertiary website",
+				"Phased next generation adapter",
+				"Proactive foreground paradigm",
+				"Profit - focused coherent installation",
+				"Profit - focused dedicated frame",
+				"Profound client - server frame",
+				"Progressive modular hub",
+				"Quality - focused client - server Graphical User Interface",
+				"Re - contextualized dynamic hierarchy",
+				"Reactive attitude - oriented toolset",
+				"Realigned didactic function",
+				"Reverse - engineered composite moratorium",
+				"Reverse - engineered heuristic alliance",
+				"Reverse - engineered mission - critical moratorium",
+				"Right - sized clear - thinking flexibility",
+				"Right - sized zero tolerance focus group",
+				"Seamless disintermediate collaboration",
+				"Secured foreground emulation",
+				"Secured logistical synergy",
+				"Secured zero tolerance hub",
+				"Self - enabling fresh - thinking installation",
+				"Self - enabling multi - tasking process improvement",
+				"Sharable optimal functionalities",
+				"Stand - alone static implementation",
+				"Streamlined 6thgeneration function",
+				"Switchable scalable moratorium",
+				"Synchronized needs - based challenge",
+				"Synergistic background access",
+				"Synergistic web - enabled framework",
+				"Team - oriented tangible complexity",
+				"Universal human - resource collaboration",
+				"User - centric 4thgeneration system engine",
+				"User - centric heuristic focus group",
+				"User - centric modular customer loyalty",
+				"User - centric system - worthy leverage",
+				"User - friendly clear - thinking productivity",
+				"User - friendly exuding migration",
+				"Virtual holistic methodology",
+				"Vision - oriented secondary project",
+				"Adaptive bi - directional hierarchy",
+				"Adaptive intangible frame",
+				"Advanced static process improvement",
+				"Ameliorated directional emulation",
+				"Assimilated 24 / 7 archive",
+				"Automated 4thgeneration website",
+				"Balanced analyzing groupware",
+				"Balanced multimedia knowledgebase",
+				"Centralized attitude - oriented capability",
+		}
+		);
 		auto button_login = std::make_shared<button>("Login", [&]() {
 			bool loop = true;
 			auto window_confirm = window(self.width, self.height);
@@ -444,6 +643,7 @@ private:
 		main_window.add(std::make_shared<space>(self.width, 1));
 		main_window.add(input_username);
 		main_window.add(input_password);
+		main_window.add(dropdown_lain);
 		main_window.add(button_login);
 		main_window.add(button_exit);
 

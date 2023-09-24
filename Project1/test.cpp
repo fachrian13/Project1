@@ -1,41 +1,119 @@
-#include <Windows.h>
-#include <stdio.h>
+#include <iostream>
+#include <functional>
 
 int main() {
-  HANDLE hConsoleInput;
-  INPUT_RECORD inputRecords[128]; // Buffer to hold input records
-  DWORD numEventsRead;
-  DWORD i;
+	std::initializer_list<std::string> value {
+		"Adaptive bi - directional hierarchy",
+			"Adaptive intangible frame",
+			"Advanced static process improvement",
+			"Ameliorated directional emulation",
+			"Assimilated 24 / 7 archive",
+			"Automated 4thgeneration website",
+			"Balanced analyzing groupware",
+			"Balanced multimedia knowledgebase",
+			"Centralized attitude - oriented capability",
+			"Centralized leadingedge moratorium",
+			"Centralized non - volatile capability",
+			"Centralized secondary time - frame",
+			"Compatible analyzing intranet",
+			"Configurable zero administration Graphical User Interface",
+			"Cross - group user - facing focus group",
+			"Customer - focused explicit frame",
+			"De - engineered fault - tolerant challenge",
+			"De - engineered systemic artificial intelligence",
+			"De - engineered transitional strategy",
+			"Distributed impactful customer loyalty",
+			"Diverse exuding installation",
+			"Enhanced foreground collaboration",
+			"Enhanced intangible time - frame",
+			"Enterprise - wide executive installation",
+			"Extended content - based methodology",
+			"Extended human - resource intranet",
+			"Face - to - face high - level conglomeration",
+			"Face - to - face well - modulated customer loyalty",
+			"Front - line clear - thinking encryption",
+			"Front - line systematic help - desk",
+			"Function - based fault - tolerant concept",
+			"Fundamental asynchronous capability",
+			"Fundamental stable info - mediaries",
+			"Future - proofed radical implementation",
+			"Grass - roots methodical info - mediaries",
+			"Grass - roots radical parallelism",
+			"Horizontal empowering knowledgebase",
+			"Innovative background definition",
+			"Intuitive local adapter",
+			"Managed demand - driven website",
+			"Managed human - resource policy",
+			"Mandatory coherent synergy",
+			"Monitored client - server implementation",
+			"Multi - channeled 3rdgeneration open system",
+			"Multi - lateral scalable protocol",
+			"Multi - layered composite paradigm",
+			"Multi - tiered secondary productivity",
+			"Object - based optimizing model",
+			"Object - based value - added database",
+			"Open - architected well - modulated capacity",
+			"Open - source zero administration hierarchy",
+			"Optional exuding superstructure",
+			"Optional non - volatile open system",
+			"Organic logistical leverage",
+			"Organic non - volatile hierarchy",
+			"Organized empowering forecast",
+			"Persevering contextually - based approach",
+			"Persevering exuding budgetary management",
+			"Persistent interactive circuit",
+			"Persistent real - time customer loyalty",
+			"Persistent tertiary focus group",
+			"Persistent tertiary website",
+			"Phased next generation adapter",
+			"Proactive foreground paradigm",
+			"Profit - focused coherent installation",
+			"Profit - focused dedicated frame",
+			"Profound client - server frame",
+			"Progressive modular hub",
+			"Quality - focused client - server Graphical User Interface",
+			"Re - contextualized dynamic hierarchy",
+			"Reactive attitude - oriented toolset",
+			"Realigned didactic function",
+			"Reverse - engineered composite moratorium",
+			"Reverse - engineered heuristic alliance",
+			"Reverse - engineered mission - critical moratorium",
+			"Right - sized clear - thinking flexibility",
+			"Right - sized zero tolerance focus group",
+			"Seamless disintermediate collaboration",
+			"Secured foreground emulation",
+			"Secured logistical synergy",
+			"Secured zero tolerance hub",
+			"Self - enabling fresh - thinking installation",
+			"Self - enabling multi - tasking process improvement",
+			"Sharable optimal functionalities",
+			"Stand - alone static implementation",
+			"Streamlined 6thgeneration function",
+			"Switchable scalable moratorium",
+			"Synchronized needs - based challenge",
+			"Synergistic background access",
+			"Synergistic web - enabled framework",
+			"Team - oriented tangible complexity",
+			"Universal human - resource collaboration",
+			"User - centric 4thgeneration system engine",
+			"User - centric heuristic focus group",
+			"User - centric modular customer loyalty",
+			"User - centric system - worthy leverage",
+			"User - friendly clear - thinking productivity",
+			"User - friendly exuding migration",
+			"Virtual holistic methodology",
+			"Vision - oriented secondary project",
+			"Adaptive bi - directional hierarchy",
+			"Adaptive intangible frame",
+			"Advanced static process improvement",
+			"Ameliorated directional emulation",
+			"Assimilated 24 / 7 archive",
+			"Automated 4thgeneration website",
+			"Balanced analyzing groupware",
+			"Balanced multimedia knowledgebase",
+			"Centralized attitude - oriented capability",
+	};
 
-  hConsoleInput = GetStdHandle(STD_INPUT_HANDLE);
-
-  if (hConsoleInput == INVALID_HANDLE_VALUE) {
-    fprintf(stderr, "Error: GetStdHandle\n");
-    return 1;
-  }
-
-  while (1) {
-    if (ReadConsoleInput(hConsoleInput, inputRecords, 128, &numEventsRead)) {
-      for (i = 0; i < numEventsRead; i++) {
-        if (inputRecords[i].EventType == KEY_EVENT) {
-          // Handle key events
-          if (inputRecords[i].Event.KeyEvent.bKeyDown) {
-            printf("Key pressed: %c\n", inputRecords[i].Event.KeyEvent.wVirtualKeyCode);
-          }
-        }
-        else if (inputRecords[i].EventType == MOUSE_EVENT) {
-          // Handle mouse events
-          MOUSE_EVENT_RECORD mouseEvent = inputRecords[i].Event.MouseEvent;
-          if (mouseEvent.dwEventFlags == MOUSE_MOVED) {
-            printf("Mouse moved to (%d, %d)\n", mouseEvent.dwMousePosition.X, mouseEvent.dwMousePosition.Y);
-          }
-          else if (mouseEvent.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) {
-            printf("Left mouse button pressed at (%d, %d)\n", mouseEvent.dwMousePosition.X, mouseEvent.dwMousePosition.Y);
-          }
-        }
-      }
-    }
-  }
-
-  return 0;
+	std::cout << *std::max_element(value.begin(), value.end(), [](const std::string& v1, const std::string& v2) { return v1.size() < v2.size(); });
+	std::cin.get();
 }
