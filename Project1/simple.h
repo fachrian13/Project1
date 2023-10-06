@@ -273,7 +273,7 @@ private:
 };
 class input final : public component {
 public:
-	input(std::string name, int width = 20, std::string placeholder = "") {
+	input(std::string name, int width = 30, std::string placeholder = "") {
 		self.set_type(component_type::has_focus);
 		self.name = name;
 		self.width = width + name.size();
