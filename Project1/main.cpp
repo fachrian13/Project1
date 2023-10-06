@@ -2,14 +2,14 @@
 
 class application final : public console {
 public:
-	application() : console(150, 37) {
+	application() : console({ 120, 30 }) {
 		self.disable_maximize_button();
 		self.disable_minimize_button();
 		self.disable_resize_window();
-		self.cursor_visible(false);
+		self.set_cursor_visible(false);
 	}
 	void main() override {
-		bool loop = true;
+		auto loop = true;
 
 		auto window_main = window(self.width, self.height);
 		auto input_nama_lengkap = std::make_shared<input>("Nama Lengkap    : ", 50);
@@ -23,7 +23,22 @@ public:
 		auto input_alamat = std::make_shared<input>("Alamat Rumah    : ", 50);
 		auto input_notel = std::make_shared<input>("Nomor telepon   : ", 50);
 		auto input_email = std::make_shared<input>("Email           : ", 50);
-		auto button_daftar = std::make_shared<button>("Daftar");
+		auto button_daftar = std::make_shared<button>("Daftar", [&]() {
+			if (input_nama_lengkap->empty() || input_nama_panggilan->empty() || input_nisn->empty() || input_nik->empty() || input_tempat_lahir->empty() || input_alamat->empty() || input_notel->empty() || input_email->empty()) {
+				auto loop = true;
+				auto window_kosong = window(self.width, self.height);
+				auto button_ok = std::make_shared<button>("Ok", [&loop]() { loop = false; });
+
+				window_kosong.add(std::make_shared<text>("============================"));
+				window_kosong.add(std::make_shared<text>("   FORM PENDAFTARAN SISWA"));
+				window_kosong.add(std::make_shared<text>("============================"));
+				window_kosong.add(std::make_shared<text>("Silakan isi semua form."));
+				window_kosong.add(button_ok);
+
+				while (loop)
+					self.render(window_kosong);
+			}
+			});
 		auto button_exit = std::make_shared<button>("Exit", [&loop]() { loop = false; });
 
 		window_main.add(std::make_shared<text>("============================"));
@@ -45,7 +60,8 @@ public:
 		window_main.add(button_daftar);
 		window_main.add(button_exit);
 
-		while (loop) self.render(window_main);
+		while (loop)
+			self.render(window_main);
 	}
 } app;
 
