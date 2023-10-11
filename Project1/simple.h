@@ -282,7 +282,7 @@ public:
 		if (component->get_type() == component_type::has_focus)
 			self.focusable_components.push_back(self.components.size() - 1);
 	}
-	auto render() -> rectangle& override {
+	auto render() -> rectangle & override {
 		int height = 0;
 		int width = self.components.size() - 1;
 		int component_width = 0;
@@ -322,7 +322,7 @@ public:
 
 			return self.canvas;
 		}
-		
+
 		// render all component
 		for (const auto& component : self.components)
 			components_rendered.push_back(component->render());
@@ -336,7 +336,7 @@ public:
 
 		// not focus section
 		self.canvas = rectangle(1, line(width, pixel()));
-		
+
 		for (size_t i = 0; i < components_rendered.size(); i++) {
 			for (size_t h = 0; h < components_rendered[i].size(); h++)
 				for (size_t w = 0; w < components_rendered[i][h].size(); w++, field++)
