@@ -193,7 +193,7 @@ public:
 		self.name = name;
 		self.content = value;
 		self.show = value.size() < show ? value.size() : show;
-		self.width = width == 0 ? std::max_element(value.begin(), value.end(), [](const std::string& first, const std::string& second) -> int { return first.size() < second.size(); })->size() + name.size() : width + name.size();
+		self.width = width == 0 ? std::max_element(value.begin(), value.end(), [](const std::string& first, const std::string& second) { return first.size() < second.size(); })->size() + name.size() : width + name.size();
 	}
 	auto render() -> rectangle & override {
 		// focus section
@@ -229,7 +229,7 @@ public:
 			self.canvas[0][i].character = self.name[i];
 
 		for (size_t f = self.name.size(); f < self.width; f++)
-			self.canvas[0][f] = pixel();
+			self.canvas[0][f] = pixel(color::gray, color::black);
 
 		for (size_t i = 0, f = self.name.size(); f < self.width; i++, f++) {
 			if (i == self.content[self.index].size())
@@ -269,6 +269,109 @@ private:
 	int index = 0;
 	std::string name = "";
 	std::vector<std::string> content = {};
+	rectangle canvas = {};
+};
+class hlayout final : public component {
+public:
+	hlayout() {
+		self.set_type(component_type::has_focus);
+	}
+	void add(std::shared_ptr<component> component) {
+		self.components.push_back(component);
+
+		if (component->get_type() == component_type::has_focus)
+			self.focusable_components.push_back(self.components.size() - 1);
+	}
+	auto render() -> rectangle& override {
+		int height = 0;
+		int width = self.components.size() - 1;
+		int component_width = 0;
+		int field = 0;
+		std::vector<rectangle> components_rendered = {};
+
+		if (self.get_focus()) {
+			for (size_t i = 0; i < self.components.size(); i++) {
+				if (!self.focusable_components.empty() && i == self.current_component)
+					self.components[self.focusable_components[self.current_component]]->set_focus(true);
+
+				components_rendered.push_back(self.components[i]->render());
+			}
+
+			// width
+			for (const auto& component : components_rendered)
+				width += component[0].size();
+
+			// height
+			height = std::max_element(components_rendered.begin(), components_rendered.end(), [](const rectangle& a, const rectangle& b) { return a.size() < b.size(); })->size();
+
+			self.canvas = rectangle(height, line(width, pixel()));
+
+			for (size_t i = 0; i < components_rendered.size(); i++) {
+				for (size_t h = 0; h < components_rendered[i].size(); h++) {
+					field = component_width;
+
+					for (size_t w = 0; w < components_rendered[i][h].size(); w++, field++)
+						self.canvas[h][field] = components_rendered[i][h][w];
+				}
+
+				if (field < width)
+					component_width++;
+
+				component_width += components_rendered[i][0].size();
+			}
+
+			return self.canvas;
+		}
+		
+		// render all component
+		for (const auto& component : self.components)
+			components_rendered.push_back(component->render());
+
+		// width
+		for (const auto& component : components_rendered)
+			width += component[0].size();
+
+		// height
+		height = std::max_element(components_rendered.begin(), components_rendered.end(), [](const rectangle& a, const rectangle& b) { return a.size() < b.size(); })->size();
+
+		// not focus section
+		self.canvas = rectangle(1, line(width, pixel()));
+		
+		for (size_t i = 0; i < components_rendered.size(); i++) {
+			for (size_t h = 0; h < components_rendered[i].size(); h++)
+				for (size_t w = 0; w < components_rendered[i][h].size(); w++, field++)
+					self.canvas[0][field] = components_rendered[i][h][w];
+
+			if (field < width)
+				field++;
+		}
+
+		return self.canvas;
+	}
+	auto on_event(const KEY_EVENT_RECORD& key) -> bool override {
+		if (self.components[self.focusable_components[self.current_component]]->on_event(key))
+			return true;
+
+		switch (key.uChar.AsciiChar) {
+		case 'l':
+			if (self.current_component < (self.focusable_components.size() - 1))
+				self.components[self.focusable_components[self.current_component++]]->set_focus(false);
+			return true;
+		case 'h':
+			if (self.current_component > 0)
+				self.components[self.focusable_components[self.current_component--]]->set_focus(false);
+			return true;
+		}
+
+		self.components[self.focusable_components[self.current_component]]->set_focus(false);
+
+		return false;
+	}
+
+private:
+	size_t current_component = 0;
+	std::vector<std::shared_ptr<component>> components = {};
+	std::vector<size_t> focusable_components = {};
 	rectangle canvas = {};
 };
 class input final : public component {
