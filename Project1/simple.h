@@ -348,8 +348,6 @@ public:
 				field++;
 		}
 
-		self.components[self.focusable_components[self.current_component]]->set_focus(false);
-
 		return self.canvas;
 	}
 	auto on_event(const KEY_EVENT_RECORD& key) -> bool override {
