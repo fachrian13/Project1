@@ -471,7 +471,7 @@ public:
 		return false;
 	}
 	auto value() const -> std::string { return self.content; }
-	auto set_visible(bool value) -> void { self.password = value; }
+	auto hide(bool value) -> void { self.password = value; }
 	auto empty() const -> bool { return self.content.empty(); }
 
 private:
