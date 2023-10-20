@@ -91,14 +91,14 @@ public:
 		auto input_nama = std::make_shared<input>("Nama Siswa            : ");
 		auto input_tempat_lahir = std::make_shared<input>("Tempat lahir          : ");
 		auto hlayout_tanggal_lahir = std::make_shared<hlayout>();
-		auto dropdown_tanggal = std::make_shared<dropdown>("Tanggal : ", tanggal, 0, 10);
-		auto dropdown_bulan = std::make_shared<dropdown>("Bulan : ", bulan, 0, 10);
-		auto dropdown_tahun = std::make_shared<dropdown>("Tahun : ", tahun, 4, 10);
+		auto dropdown_tanggal = std::make_shared<dropdown>("Tanggal : ", tanggal, 10, 5);
+		auto dropdown_bulan = std::make_shared<dropdown>("Bulan : ", bulan, 10, 0);
+		auto dropdown_tahun = std::make_shared<dropdown>("Tahun : ", tahun, 14, 5);
 		auto choice_jk = std::make_shared<choice>("Jenis kelamin         : ", jenis_kelamin);
 		auto input_alamat = std::make_shared<input>("Alamat                : ");
 		auto choice_agama = std::make_shared<choice>("Agama                 : ", agama);
 		auto input_notel = std::make_shared<input>("Nomor Telepon/HP      : ");
-		auto dropdown_jurusan = std::make_shared<dropdown>("Jurusan               : ", jurusan, 30);
+		auto dropdown_jurusan = std::make_shared<dropdown>("Jurusan               : ", jurusan, 10, 30);
 		auto function_daftar = [&]() {
 			if (input_nama->empty() || input_tempat_lahir->empty() || input_alamat->empty() || input_notel->empty()) {
 				auto loop = true;

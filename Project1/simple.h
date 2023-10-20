@@ -188,7 +188,7 @@ private:
 };
 class dropdown final : public component {
 public:
-	dropdown(std::string name, std::initializer_list<std::string> value, short width = 0, short show = 10) {
+	dropdown(std::string name, std::initializer_list<std::string> value, short show = 10, short width = 0) {
 		self.set_type(component_type::has_focus);
 		self.name = name;
 		self.content = value;
@@ -376,7 +376,7 @@ private:
 };
 class input final : public component {
 public:
-	input(std::string name, int width = 30, std::string placeholder = "") {
+	input(std::string name = "", int width = 30, std::string placeholder = "") {
 		self.set_type(component_type::has_focus);
 		self.name = name;
 		self.width = width + name.size();
@@ -487,6 +487,62 @@ private:
 		int field = 0;
 	} cursor;
 };
+class menu final : public component {
+public:
+	menu(std::initializer_list<std::string> menu, int show = 10, int width = 0) {
+		self.set_type(component_type::has_focus);
+		self.content = menu;
+		self.show = menu.size() < show ? menu.size() : show;
+		self.width = width == 0 ? std::max_element(menu.begin(), menu.end(), [](const std::string& first, const std::string& second) { return first.size() < second.size(); })->size() : width;
+	}
+	auto render() -> rectangle & override {
+		self.canvas = rectangle(self.show, line(self.width, pixel()));
+
+		for (size_t h = 0, s = show_start; s < self.show + show_start; h++, s++)
+			for (size_t w = 0, f = 0; w < self.content[s].size(); w++, f++)
+				if (f == self.width)
+					break;
+				else
+					self.canvas[h][f].character = self.content[s][w];
+
+		if (self.get_focus())
+			for (size_t f = 0; f < self.canvas[self.cursor].size(); f++)
+				self.canvas[self.cursor][f].background = color::white, self.canvas[self.cursor][f].foreground = color::black;
+
+		return self.canvas;
+	}
+	auto on_event(const KEY_EVENT_RECORD& key) -> bool override {
+		switch (key.uChar.AsciiChar) {
+		case 'j':
+		case 'J':
+			if (self.cursor < show - 1)
+				self.cursor++, self.current_index++;
+			else if (self.show_start < self.content.size() - show)
+				self.show_start++, self.current_index++;
+			return true;
+		case 'k':
+		case 'K':
+			if (self.cursor > 0)
+				self.cursor--, self.current_index--;
+			else if (self.show_start > 0)
+				self.show_start--, self.current_index--;
+			return true;
+		}
+
+		return false;
+	}
+	auto value() const -> std::string { return self.content[self.current_index]; }
+	auto index() const -> int { return self.current_index; }
+
+private:
+	int show = 0;
+	int width = 0;
+	int cursor = 0;
+	int show_start = 0;
+	int current_index = 0;
+	std::vector<std::string> content = {};
+	rectangle canvas = {};
+};
 class space final : public component {
 public:
 	space(int height = 1) {
@@ -554,7 +610,7 @@ protected:
 	DWORD input_size = 0;
 
 protected:
-	console(COORD size) {
+	console(COORD size = { 120, 30 }) {
 		COORD max_size = GetLargestConsoleWindowSize(output_handle);
 
 		if (size.X <= max_size.X && size.Y <= max_size.Y) {
