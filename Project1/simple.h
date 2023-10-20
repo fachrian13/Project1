@@ -580,14 +580,17 @@ public:
 		self.height = height;
 		self.canvas = rectangle(height, line(width, pixel()));
 	}
-	void add(std::shared_ptr<component> component) {
+	auto add(std::shared_ptr<component> component) -> void {
 		self.components.push_back(component);
 
 		if (component->get_type() == component_type::has_focus)
 			self.focusable_components.push_back(self.components.size() - 1);
 	}
+	auto loop() -> bool const { return self.looping; }
+	auto loop(const bool value) -> void { self.looping = value; }
 
 private:
+	bool looping = true;
 	int width = 0;
 	int height = 0;
 	size_t current_component = 0;

@@ -11,7 +11,6 @@ public:
 
 	auto main() -> void override {
 		auto window_main = window(self.width, self.height);
-		auto loop = true;
 		auto menu_main = std::make_shared<menu>(std::initializer_list<std::string>{
 				"1. Tambah data siswa",
 				"2. Lihat seluruh data",
@@ -20,7 +19,7 @@ public:
 				"5. Hapus data siswa"
 			}
 		);
-		auto button_exit = std::make_shared<button>("Exit", [&loop]() { loop = false; });
+		auto button_exit = std::make_shared<button>("Exit", [&window_main]() { window_main.loop(false); });
 
 		window_main.add(std::make_shared<text>("========================="));
 		window_main.add(std::make_shared<text>("  MANAGEMENT DATA SISWA"));
@@ -29,8 +28,18 @@ public:
 		window_main.add(menu_main);
 		window_main.add(button_exit);
 
-		while (loop)
+		while (window_main.loop()) {
 			self.render(window_main);
+
+			switch (menu_main->index()) {
+			case 0:
+				break;
+			}
+		}
+	}
+
+	auto tambah_data_siswa() -> void {
+		auto window_tambah_data = window(self.width, self.height);
 	}
 } csv;
 
