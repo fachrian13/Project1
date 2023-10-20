@@ -138,7 +138,7 @@ public:
 					if (i == self.index)
 						self.canvas[0][field] = pixel(color::white, color::black, self.content[i][j]);
 					else
-						self.canvas[0][field] = pixel(color::black, color::white, self.content[i][j]);
+						self.canvas[0][field] = pixel(color::black, color::gray, self.content[i][j]);
 
 				if (field < self.width)
 					self.canvas[0][field++].character = '|';
@@ -151,9 +151,9 @@ public:
 		for (size_t i = 0; i < self.content.size(); i++) {
 			for (size_t j = 0; j < self.content[i].size(); j++, field++)
 				if (i == self.index)
-					self.canvas[0][field] = pixel(color::gray, color::black, self.content[i][j]);
+					self.canvas[0][field] = pixel(color::black, color::bright_white, self.content[i][j]);
 				else
-					self.canvas[0][field] = pixel(color::black, color::white, self.content[i][j]);
+					self.canvas[0][field] = pixel(color::black, color::gray, self.content[i][j]);
 
 			if (field < self.width)
 				self.canvas[0][field++].character = '|';
@@ -229,7 +229,7 @@ public:
 			self.canvas[0][i].character = self.name[i];
 
 		for (size_t f = self.name.size(); f < self.width; f++)
-			self.canvas[0][f] = pixel(color::gray, color::black);
+			self.canvas[0][f] = pixel(color::black, color::white);
 
 		for (size_t i = 0, f = self.name.size(); f < self.width; i++, f++) {
 			if (i == self.content[self.index].size())
