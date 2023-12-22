@@ -19,7 +19,7 @@ enum class color : int {
 	white = 37,
 	original = 39,
 	gray = 90,
-	brightred = 91,
+	bright_red = 91,
 	bright_green = 92,
 	bright_yellow = 93,
 	bright_blue = 94,
@@ -464,7 +464,6 @@ public:
 				self.cursor.field++;
 			else
 				self.cursor.start++;
-
 			return true;
 		}
 
